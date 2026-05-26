@@ -6,7 +6,7 @@
 #              configure the ZTeraDB connection settings such as client keys,
 #              environment, and connection pool options.
 #
-# License: ZTeraDB
+# Licence: ZTeraDB
 # Copyright (c) 2025 ZTeraDB
 #
 # The code in this file is proprietary and confidential. It may not be shared,
@@ -15,11 +15,19 @@
 #
 # All rights are reserved to the copyright holder.
 #
-# License URL: https://zteradb.com/licence
+# Licence URL: https://zteradb.com/licence
 # -----------------------------------------------------------------------------
 import os
-from zteradb import ZTeraDBConfig, ENVS, Options, ResponseDataTypes
+from zteradb.config.zteradb_config import ZTeraDBConfig
+from zteradb.config.envs import ENVS
+from zteradb.config.options import Options
+from zteradb.config.response_data_types import ResponseDataTypes
 
+
+os.environ["ZTERADB_CLIENT_KEY"] = "51JDA1MK5MIU7JKUH0O42N3H5Q"
+os.environ["ZTERADB_ACCESS_KEY"] = "51Q2ORCRFQV32VHJUC4I94P59Q"
+os.environ["ZTERADB_SECRET_KEY"] = "ef756a05c781e03540099ea0fa79637a2847a4115bb96373c99589835cebc25298029105a4e2403c2155bbab575bcc1b18ad327b9a27a8da1cb66f8f2a401cf2"
+os.environ["ZTERADB_DATABASE_ID"] = "51MC4NECO0COA6ULSU30P4Q8OB"
 
 # Retrieve and validate environment variables
 def get_connection_params():
@@ -93,6 +101,9 @@ def get_zteradb_config():
     if not env:
         raise ValueError("ZTERADB_ENV is not set in the environment variable.")
 
+    use_tls = os.environ.get("USE_TLS", True)
+    verify_tls_host = os.environ.get("VERIFY_TLS_HOST", True)
+
     # Create and return the ZTeraDBConfig object with the retrieved environment variables
     return ZTeraDBConfig(
         client_key=client_key,
@@ -101,5 +112,8 @@ def get_zteradb_config():
         database_id=database_id,
         env=env,
         response_data_type=response_data_type,
-        options=Options(connection_pool=dict(min=min_connections, max=max_connections))
+        options=Options(connection_pool=dict(min=min_connections, max=max_connections)),
+        use_tls=use_tls,
+        verify_tls_host=verify_tls_host,
+
     )

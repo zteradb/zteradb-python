@@ -15,7 +15,7 @@
 # License URL: https://zteradb.com/licence
 # -----------------------------------------------------------------------------
 
-from .zteradb_filter_types import ZTeraDBFilterTypes
+from zteradb.query.zteradb_filter_types import ZTeraDBFilterTypes
 
 
 class ZTeraDBCommonCondition:
@@ -61,7 +61,7 @@ class ZTeraDBCommonCondition:
             if not self.is_valid_value(value):
                 raise ValueError(f"Invalid '{value}' for add operation")
 
-        operand = [value if isinstance(value, type(self)) else value for value in values]
+        operand = [value.get_fields() if isinstance(value, type(self)) else value for value in values]
         self.filters.append(dict(operator=ZTeraDBFilterTypes.ADD.value, operand=operand))
         return self
 
@@ -82,7 +82,7 @@ class ZTeraDBCommonCondition:
             if not self.is_valid_value(value):
                 raise ValueError(f"Invalid '{value}' for sub operation")
 
-        operand = [value if isinstance(value, type(self)) else value for value in values]
+        operand = [value.get_fields() if isinstance(value, type(self)) else value for value in values]
         self.filters.append(dict(operator=ZTeraDBFilterTypes.SUB.value, operand=operand))
         return self
 
@@ -103,7 +103,7 @@ class ZTeraDBCommonCondition:
             if not self.is_valid_value(value):
                 raise ValueError(f"Invalid '{value}' for mul operation")
 
-        operand = [value if isinstance(value, type(self)) else value for value in values]
+        operand = [value.get_fields() if isinstance(value, type(self)) else value for value in values]
         self.filters.append(dict(operator=ZTeraDBFilterTypes.MUL.value, operand=operand))
         return self
 

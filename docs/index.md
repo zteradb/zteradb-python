@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # 🐍 Python Client
 
 Welcome to the official ZTeraDB Python Client documentation. This package implements a high-performance, ZQL-first database driver utilizing a raw TCP socket transport layer.
@@ -165,13 +169,13 @@ if __name__ == "__main__":
 
 Explore the rest of our guides to unlock the full potential of ZTeraDB:
 
-*   🔐 [Configuration](./docs/config) — Learn all available configuration options.
-*   🔌 [Connection](./docs/zteradb-connection) — Deep dive into socket connections and lifecycle management.
-*   🔍 [Query Builder](./docs/zteradb-query) — Master building fluent ZQL queries.
-*   🎛️ [Filter Conditions](./docs/filter-condition) — Apply advanced math and logical filters to your data.
-*   🍳[Examples](./docs/query-examples) — Copy-pasteable snippets for common use cases.
-*   🛠 [Troubleshooting Guide](./docs/troubleshooting) — How to resolve common connection or runtime errors.
-*   🚀 [Quickstart Guide](./docs/quickstart) — A streamlined, 5-minute setup guide.
+*   🔐 [Configuration](./config) — Learn all available configuration options.
+*   🔌 [Connection](./zteradb-connection) — Deep dive into socket connections and lifecycle management.
+*   🔍 [Query Builder](./zteradb-query) — Master building fluent ZQL queries.
+*   🎛️ [Filter Conditions](./filter-condition) — Apply advanced math and logical filters to your data.
+*   🍳[Examples](./query-examples) — Copy-pasteable snippets for common use cases.
+*   🛠 [Troubleshooting Guide](./troubleshooting) — How to resolve common connection or runtime errors.
+*   🚀 [Quickstart Guide](./quickstart) — A streamlined, 5-minute setup guide.
 *   🥇 [Licence](./LICENCE) — Open-source licence terms.
 
 ---

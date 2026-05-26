@@ -31,7 +31,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from zteradb import ZTeraDBConditionError
-from zteradb.zteradb_filter_functions import *
+from zteradb.query.filter_condition import *
 
 class TestZTeraDBFilterConditionFunctions(unittest.TestCase):
     """

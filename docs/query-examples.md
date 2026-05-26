@@ -1,503 +1,381 @@
-# ZTeraDB Query examples
+---
+sidebar_position: 6
+---
 
-Consider we have a database called `test` with generated database ID 7K3WHGOJKJJEJ3PFJM407QO25F. This database has following schemas.
+# 🍳 Query Cookbook
 
-### user schema 
-  - id: integer(11) auto increment primary key
-  - email: varchar(255) not null unique
-  - password varchar(255) not null
-  - status boolean default true
+This reference guide provides production-ready code blocks for standard CRUD operations, complex mathematical evaluations, sorting configurations, and pagination pipelines using the ZTeraDB Query Builder.
 
-### user_profile schema
-  - id: integer(11) auto increment primary key
-  - user: user schema (related field)
-  - address: user address varchar(255)
-  - profile_image: varchar(255)
 
-### product schema
-  - id: ZTeraDB UID - Varchar field
-  - name: varchar(255)
-  - description: text
-  - quantity: small integer(5)
-  - price: integer(5)
-  - create_date: datetime
-  - update_date: datetime
-  - status: varchar(2) (A: Available, NA: Not available)
+## 📌 Table of Contents
+* [⚙️ Initial Core Setup](#initial-core-setup)
+* [1️⃣ Mutation Operators (INSERT)](#1-mutation-operators-insert)
+  * [Insert a Single Record](#insert-a-single-record)
+* [2️⃣ Retrieval Operators (SELECT)](#2-retrieval-operators-select)
+  * [Select All Table Records](#select-all-table-records)
+  * [Select with Basic Scalar Filtering](#select-with-basic-scalar-filtering)
+  * [Explicit Column Selection](#explicit-column-selection)
+  * [Row Window Offsetting (Pagination Boundary)](#row-window-offsetting-pagination-boundary)
+* [3️⃣ Advanced Functional Filters](#3-advanced-functional-filters)
+  * [Inline Mathematical Validations](#inline-mathematical-validations)
+  * [Case-Insensitive Fuzzy Text Matching](#case-insensitive-fuzzy-text-matching)
+* [4️⃣ Update & Delete Mutations](#4-update--delete-mutations)
+  * [Conditional Record Updates](#conditional-record-updates)
+  * [Target Record Hard Erasures](#target-record-hard-erasures)
+* [5️⃣ Relational Join Operations](#5-relational-join-operations)
+* [6️⃣ Result Set Modifiers](#6-result-set-modifiers)
+  * [Ascending Sorting Sequence](#ascending-sorting-sequence)
+  * [Multi-Key Compound Sorting](#multi-key-compound-sorting)
+  * [Table Matrix Record Counting](#table-matrix-record-counting)
+* [🏆 Unified Master Blueprint Example](#-unified-master-blueprint-example)
+* [🎉 Next Steps](#next-steps)
 
-### order schema
-  - id: ZTeraDBID - Varchar field
-  - product: product schema (related field)
-  - user: user schema (related field)
-  - create_date: datetime
-  - update_date: datetime
-  - status: varchar(2) (A: Approved, NA: Not Approved, D: Delivered, etc)
+---
 
-## Establish the database connection
-  This connection will be used in all below examples
+## ⚙️ Initial Core Setup {#initial-core-setup}
+Every example below assumes an active, pre-configured `ZTeraDBConnectionAsync` lifecycle instance initialized via your global configuration layer using explicit option wrappers and connection pools:
 
 ```python
+import os
+import json
+from zteradb import ZTeraDBConnectionAsync
+from zteradb.config.zteradb_config import ZTeraDBConfig
+from zteradb.config.options import Options
+from zteradb.config.connection_pool import ConnectionPool
+from zteradb.config.response_data_types import ResponseDataTypes
 
-# Import ZTeraDBConnection, ZTeraDBQuery classes 
-from zteradb import ZTeraDBConfig, Options, ZTeraDBConnectionAsync
-
-host = "db.zteradb.com"
-port = 7777
-
-ZTERADB_CONFIG = ZTeraDBConfig(
-    client_key= "7DV0AVT0VO81B9KSUJP8Q4PIFS",
-    access_key= "4SVOHVT0VO81B9KSUJP8Q4PIFS",
-    secret_key= "7fbb52c011ecafaa9a1d1b8683dd661cb4143f7f27f86c0303e02880f28fe409c0b4266c012f8edf9ed1b729a6c3d6fa88d8f269d4ad146211708a2cca1a7d9a",
-    database_id= "7K3WHGOJKJJEJ3PFJM407QO25F",
-    env= "dev",
-    response_data_type= "json",
-    options= Options(
-        connection_pool= dict(
-            min= 0,
-            max= 0
-        )
-    )
+# Setup advanced configurations and pool sizing
+options = Options(
+    response_type=ResponseDataTypes.JSON,
+    timeout_ms=5000
 )
 
-# Establish connection with ZTeraDB server
-connection = ZTeraDBConnectionAsync(host, port, ZTERADB_CONFIG)
+pool_config = ConnectionPool(
+    min_size=1,
+    max_size=5,
+    max_idle_time_ms=30000
+)
 
+# Initialize configuration via localized runtime environments
+config_raw = json.loads(os.getenv('ZTERADB_CONFIG', '{}'))
+config = ZTeraDBConfig(
+    config=config_raw,
+    options=options,
+    pool=pool_config
+)
+
+db = ZTeraDBConnectionAsync(
+    config=config,
+    host=os.getenv('ZTERADB_HOST'),
+    port=int(os.getenv('ZTERADB_PORT', 0))
+)
 ```
-## Example 1: Insert queries
 
-### 1: Insert user and profile
+---
+
+## 1️⃣ Mutation Operators (INSERT) {#1-mutation-operators-insert}
+### Insert a Single Record
+Builds structured data blocks mapping parameters explicitly to target database storage engines.
+
 ```python
+from zteradb import ZTeraDBQuery
 
-# Import ZTeraDBQuery
-from zteradb import ZTeraDBQuery, ZTeraDBError
+query = (ZTeraDBQuery('user')
+    .insert()
+    .fields({
+        'email': 'john@example.com',
+        'password': 'hashed_pw',
+        'status': True
+    }))
 
-# Constructing an INSERT query:
-user_query = ZTeraDBQuery("user").insert() # Construct query for user schema
+result = await db.run(query)
 
-# set name, email and status fields
-user_query.fields(email="john.doe@example.com", password="9b4d99d461723232aff72be0351f114b", status= True)
-
-user_id = None
-
-try:
-  # Run the query
-  # assuming the connection object exists
-  result = await connection.run(query=user_query)
-
-  # get the user ID
-  user_id = result["last_insert_id"]
-
-except ZTeraDBError as e:
-    print(e)
-
-if user_id:
-  # Construct query for user_profile schema
-  user_profile_query = ZTeraDBQuery("user_profile").insert()
-
-  # set user, address and profile_image fields
-  user_profile_query.fields(user=user_id, address="a-123, xyz lane, my city, IN", profile_image="/user/xyz.jpg")
-
-  try:
-    # Run the query
-    # assuming the connection object exists
-    user_profile_result = await connection.run(query=user_profile_query)
-
-    # get the user profile ID
-    user_profile_id = user_profile_result["last_insert_id"]
-    print("user_profile_id", user_profile_id)
-
-  except ZTeraDBError as e:
-    print(e)
-
+print(f"Generated Primary Key ID: {result['last_insert_id']}")
 ```
 
-### 2: Insert products and orders for above inserted user ID
+**Equivalent SQL**
+```sql
+INSERT INTO "user" (email, password, status)
+VALUES ('john@example.com', 'hashed_pw', TRUE);
+```
+
+---
+
+## 2️⃣ Retrieval Operators (SELECT) {#2-retrieval-operators-select}
+### Select All Table Records
+
 ```python
-
-# Import ZTeraDBQuery
 from zteradb import ZTeraDBQuery
 
-# Get the user id from above insert user query
-user_id = 1
-    
-# Prepare products
-products = [
-  {
-    "name": "Wireless Mouse",
-    "description": "Ergonomic wireless mouse with USB receiver",
-    "quantity": 120,
-    "price": 1999,
-    "create_date": "2025-02-01 10:00:00",
-    "update_date": "2025-02-01 10:00:00",
-    "status": "A"
-  },
-  {
-    "name": "Bluetooth Headphones",
-    "description": "Noise-canceling over-ear Bluetooth headphones",
-    "quantity": 50,
-    "price": 5999,
-    "create_date": "2025-02-02 14:30:00",
-    "update_date": "2025-02-02 14:30:00",
-    "status": "A"
-  },
-  {
-    "name": "Laptop Stand",
-    "description": "Adjustable laptop stand for comfortable work setup",
-    "quantity": 200,
-    "price": 1299,
-    "create_date": "2025-02-03 09:15:00",
-    "update_date": "2025-02-03 09:15:00",
-    "status": "A"
-  },
-  {
-    "name": "Smartphone Charger",
-    "description": "Fast-charging USB-C smartphone charger",
-    "quantity": 150,
-    "price": 799,
-    "create_date": "2025-02-04 11:00:00",
-    "update_date": "2025-02-04 11:00:00",
-    "status": "A"
-  },
-  {
-    "name": "Portable Speaker",
-    "description": "Water-resistant portable Bluetooth speaker",
-    "quantity": 80,
-    "price": 3499,
-    "create_date": "2025-02-05 12:45:00",
-    "update_date": "2025-02-05 12:45:00",
-    "status": "A"
-  },
-  {
-    "name": "4K Monitor",
-    "description": "Ultra HD 4K LED monitor with HDMI port",
-    "quantity": 20,
-    "price": 14999,
-    "create_date": "2025-02-06 16:00:00",
-    "update_date": "2025-02-06 16:00:00",
-    "status": "NA"
-  },
-  {
-    "name": "Gaming Keyboard",
-    "description": "RGB mechanical keyboard with customizable keys",
-    "quantity": 75,
-    "price": 4999,
-    "create_date": "2025-02-07 13:30:00",
-    "update_date": "2025-02-07 13:30:00",
-    "status": "A"
-  },
-  {
-    "name": "Wireless Charger",
-    "description": "Fast wireless charging pad for smartphones",
-    "quantity": 300,
-    "price": 1499,
-    "create_date": "2025-02-08 08:30:00",
-    "update_date": "2025-02-08 08:30:00",
-    "status": "A"
-  },
-  {
-    "name": "Smartwatch",
-    "description": "Fitness tracking smartwatch with heart-rate monitor",
-    "quantity": 90,
-    "price": 7999,
-    "create_date": "2025-02-09 18:15:00",
-    "update_date": "2025-02-09 18:15:00",
-    "status": "A"
-  },
-  {
-    "name": "Gaming Mouse",
-    "description": "Precision gaming mouse with customizable DPI settings",
-    "quantity": 130,
-    "price": 2499,
-    "create_date": "2025-02-10 17:00:00",
-    "update_date": "2025-02-10 17:00:00",
-    "status": "A"
-  }
-]
-
-orders = [
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 10:00:00",
-    "update_date": "2025-02-21 10:00:00",
-    "status": "A"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 12:00:00",
-    "update_date": "2025-02-21 12:30:00",
-    "status": "NA"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 14:00:00",
-    "update_date": "2025-02-21 14:00:00",
-    "status": "D"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 16:00:00",
-    "update_date": "2025-02-21 16:15:00",
-    "status": "A"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 17:30:00",
-    "update_date": "2025-02-21 17:30:00",
-    "status": "NA"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 18:00:00",
-    "update_date": "2025-02-21 18:00:00",
-    "status": "A"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 19:00:00",
-    "update_date": "2025-02-21 19:15:00",
-    "status": "D"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 20:00:00",
-    "update_date": "2025-02-21 20:10:00",
-    "status": "A"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 21:00:00",
-    "update_date": "2025-02-21 21:00:00",
-    "status": "NA"
-  },
-  {
-    "user_id": user_id,
-    "create_date": "2025-02-21 22:30:00",
-    "update_date": "2025-02-21 22:40:00",
-    "status": "D"
-  }
-]
-
-# A list for storing product ids
-product_ids = []
-
-for product in products:
-    # Constructing an INSERT query:
-    product_query = ZTeraDBQuery("product") \
-          .insert() \
-          .fields(**product)
-
-    # Run the query
-    # assuming the connection object exists
-    product_result = await connection.run(product_query)
-
-    # Raise exception if product data is not inserted
-    if not product_result:
-        raise Exception("An error occurred while inserting product.", product_result)
-
-    # Retrieve product id
-    product_id = product_result["last_insert_id"]
-
-    # set product id in product ids list
-    product_ids.append(product_id)
-
-# A list for storing order ids
-order_ids = []
-for order in orders:
-    # Get the current index of the order
-    order_index = orders.index(order)
-
-    # Set the product id
-    order["product_id"] = product_ids[order_index]
-
-    # Constructing an INSERT query:
-    order_query = ZTeraDBQuery("order").insert().fields(**order)
-
-    # Run the query
-    # assuming the connection object exists
-    order_result = await connection.run(order_query)
-
-    # Raise exception if order data is not inserted
-    if not order_result:
-        raise Exception("An error occurred while inserting order.", order_result)
-
-    # Retrieve the order ID
-    order_id = order_result["last_insert_id"]
-
-    # set order id in order ids list
-    order_ids.append(order_id)
-
-print(product_ids)  # ['4UBPSG0O18AGPBE3EFVGD1980I','4UBPSG0LILCFJ6UBSTNNIOSN7A', '4UBPSG0NPTTKHELBLRQLA8OSE6', '4UBPSG0NHB3HKIVFB8OM6QAO3N', '4UBPSG0MEK2BK2MSOJQMI3RDFF', '4UBPSG0LR8EFQIQO0JR4R1C9TK', '4UBPSG0MVONFIQITG390RAK9RG', '4UBPSG0MNOUFKR3T2RA4E1610I', '4UBPSG0M4J66LHS27F4CBU0UHG', '4UBPSG0N6Q24FBP4L1SKSS3P1P']
-
-print(order_ids)  # ['4UBPSG14JPJ99HJKTU30NSNP47', '4UBPSG13Q25830O1T6BJDH98KO', '4UBPSG156DKGSOPRB7OAFNSQK2', '4UBPSG151LJ6AK5D7A8SFUGBU2', '4UBPSG165EF6A13B83085ON38D', '4UBPSG149N8G7FPLMUQDRB5TFM', '4UBPSG141SDQTOUM04RHUJKO4G', '4UBPSG15S7AI2MQ6B3ELLGTEPJ', '4UBPSG14RQI8OTP1BRPMICJB9S', '4UBPSG15G0IB7EP9AOSKCA2C7F']
+query = ZTeraDBQuery('user').select()
+users = await db.run(query)
 ```
 
-## Example 2: Get / Select queries
+**Equivalent SQL**
+```sql
+SELECT * FROM "user";
+```
 
-### 1: Get / Select all users
-```py
-
-# Import ZTeraDBQuery
+### Select with Basic Scalar Filtering
+For simple exact-match lookups, pass your payload parameters directly to the `.filter()` helper method.
+```python
 from zteradb import ZTeraDBQuery
 
-# Constructing a SELECT query for getting all users and all fields from the user schema
-user_query = ZTeraDBQuery("user").select()
+query = (ZTeraDBQuery('user')
+    .select()
+    .filter({'status': True}))
 
-# Run the query
-# assuming the connection object exists
-user_result = await connection.run(user_query)
-
-# Iterate the result
-async for row in user_result:
-  print(row)  # {'email': 'john.doe@example.com', 'password': '9b4d99d461723232aff72be0351f114b', 'status': True, 'id': 1}
-
+users = await db.run(query)
 ```
 
-### 2. Get user where user email = "john.doe@example.com"
-```py
+**Equivalent SQL**
+```sql
+SELECT * FROM "user" WHERE status = TRUE;
+```
 
-# Import ZTeraDBQuery
+### Explicit Column Selection
+Reduce wire overhead payloads by picking explicitly specified column dictionaries.
+
+```python
 from zteradb import ZTeraDBQuery
 
-# Constructing a SELECT query for getting all users with email="john.doe@example.com" and all fields from the user schema
-user_query = ZTeraDBQuery("user") \
-      .select() \
-      .filter(email="john.doe@example.com")
+query = (ZTeraDBQuery('user')
+    .select()
+    .fields({'email': 1}))  # Set field map bit-flags to 1 for inclusion-selection
 
-# Run the query
-# assuming the connection object exists
-user_result = await connection.run(user_query)
-
-# Iterate the result
-async for row in user_result:
-  print(row)  # {'email': 'john.doe@example.com', 'password': '9b4d99d461723232aff72be0351f114b', 'status': True, 'id': 1}
-
+users = await db.run(query)
 ```
 
-### 3. Get user where user id = 1
+**Equivalent SQL**
+```sql
+SELECT email FROM "user";
+```
 
-```py
+### Row Window Offsetting (Pagination Boundary)
 
-# Import ZTeraDBQuery
+
+```python
 from zteradb import ZTeraDBQuery
 
-# Constructing a SELECT query for getting all users with id=1 and all fields from the user schema
-user_query = ZTeraDBQuery("user").select().filter(id=1)
+query = (ZTeraDBQuery('user')
+    .select()
+    .limit(0, 10))  # API Mapping: limit(offset, count)
 
-# Run the query
-# assuming the connection object exists
-user_result = await connection.run(user_query)
-
-# Iterate the result
-async for row in user_result:
-  print(row)  # Output: dict -> {'email': 'john.doe@example.com', 'password': '9b4d99d461723232aff72be0351f114b', 'status': True, 'id': 1}
+users = await db.run(query)
 ```
 
-### 4. Get email id from user where user status = True.
-```py
+**Equivalent SQL**
+```sql
+SELECT * FROM "user" LIMIT 10 OFFSET 0;
+```
 
-# Import ZTeraDBQuery
+---
+
+## 3️⃣ Advanced Functional Filters {#3-advanced-functional-filters}
+For complex conditions that extend beyond standard associative key-value loops, inject pre-compiled filter trees directly into `.filter_condition()`.
+
+### Inline Mathematical Validations
+```python
+from zteradb import ZTeraDBQuery
+from zteradb.query.filter_condition import ZTGT, ZTMUL
+
+# Compiles structural calculation boundary rules
+condition = ZTGT([
+    ZTMUL(['price', 'quantity']),
+    500
+])
+
+query = (ZTeraDBQuery('product')
+    .select()
+    .filter_condition(condition))
+
+rows = await db.run(query)
+```
+
+**Equivalent SQL**
+```sql
+SELECT * FROM product WHERE (price * quantity) > 500;
+```
+
+### Case-Insensitive Fuzzy Text Matching
+
+```python
+from zteradb import ZTeraDBQuery
+from zteradb.query.filter_condition import ZTICONTAINS
+
+# Utilizing case-insensitive string matcher helpers
+condition = ZTICONTAINS('name', 'john')
+
+query = (ZTeraDBQuery('user')
+    .select()
+    .filter_condition(condition))
+
+rows = await db.run(query)
+```
+
+**Equivalent SQL**
+```sql
+SELECT * FROM "user" WHERE LOWER(name) LIKE '%john%';
+```
+
+---
+
+## 4️⃣ Update & Delete Mutations {#4-update--delete-mutations}
+### Conditional Record Updates
+
+```python
 from zteradb import ZTeraDBQuery
 
-# Constructing a SELECT query for getting all active users email
-user_query = ZTeraDBQuery("user") \
-      .select() \
-      .fields(email=1) \
-      .filter(status=True)
+query = (ZTeraDBQuery('user')
+    .update()
+    .fields({'status': False})
+    .filter({'id': 1}))
 
-# Run the query
-# assuming the connection object exists
-user_result = await connection.run(user_query)
+result = await db.run(query)
 
-# Iterate the result
-async for row in user_result:
-  print(row.email)  # Output: john.doe@example.com
-
+print('Update Success' if result.get('is_updated') else 'No Changes Made')
 ```
 
-### 5. Get one product where name = "Gaming Keyboard" and create_date = "2025-02-23T01:05:48.563929"
-```py
-
-# Import ZTeraDBQuery
-from zteradb import ZTeraDBQuery, ZTeraDBError
-
-# Constructing a SELECT query
-product_query = ZTeraDBQuery("product") \
-        .select() \
-        .filter(name="Gaming Keyboard", create_date="2025-02-23T01:05:48.563929") \
-        .limit(0, 1)
-
-try:
-  # Run the query
-  # assuming the connection object exists
-  product_result = await connection.run(product_query)
-
-  # Iterate the result
-  async for row in product_result:
-    print(row)  # Output: dict -> {'id': '4U8RGUC9SPS4I0S5FLP9VH93IN', 'name': 'Gaming Keyboard', 'description': 'RGB mechanical keyboard with customizable keys', 'quantity': 75, 'price': 4999, 'create_date': '2025-02-23T01:05:48.563929+00:00', 'update_date': '2025-02-23T01:05:48.563934+00:00', 'status': 'A'}
-
-except ZTeraDBError as e:
-    print(e)
-
+**Equivalent SQL**
+```sql
+UPDATE "user" SET status = FALSE WHERE id = 1;
 ```
 
-## Example 3: Update queries
+### Target Record Hard Erasures
+```python
+from zteradb import ZTeraDBQuery
 
-### 1: Update product schema for all product name = "Gaming Keyboard" to name = "Wireless Gaming Keyboard"
-```py
+query = (ZTeraDBQuery('product')
+    .delete()
+    .filter({'id': 'PRODUCT_ID'}))
 
-# Import ZTeraDBQuery
-from zteradb import ZTeraDBQuery, ZTeraDBError
-
-# Constructing an UPDATE query
-product_query = ZTeraDBQuery("product") \
-        .update() \
-        .fields(name="Wireless Gaming Keyboard") \
-        .filter(name="Gaming Keyboard")
-
-try:
-  # Run the query
-  # assuming the connection object exists
-  product_result = await connection.run(product_query)
-
-  # Check the product status
-  if product_result["is_updated"]:
-      print("Product has been updated successfully.")
-
-  else:
-      print("Product update failed.")
-
-except ZTeraDBError as e:
-    print(e)
+result = await db.run(query)
 ```
 
-## Example 4: Delete queries
-
-### 1: Delete from order schema for order id = "Wireless Gaming Keyboard"
-```py
-
-# Import ZTeraDBQuery
-from zteradb import ZTeraDBQuery, ZTeraDBError
-
-# Constructing a DELETE query
-delete_order_query = ZTeraDBQuery("order") \
-        .delete() \
-        .filter(product="4UARJ2B0KOABVQVRSUDMLR4M89")
-
-# Note: product is foreign key field
-
-try:
-    # Run the query
-    # assuming the connection object exists
-    delete_order_result = await connection.run(delete_order_query)
-
-    # Check the delete order status
-    if delete_order_result["is_deleted"]:
-        print("Order has been deleted successfully.")
-
-    else:
-        print("Order deleted failed.")
-
-except ZTeraDBError as e:
-    print(e)
-
-
+**Equivalent SQL**
+```sql
+DELETE FROM product WHERE id = 'PRODUCT_ID';
 ```
+
+---
+
+### 5️⃣ Relational Join Operations {#5-relational-join-operations}
+Execute structured data links across foreign key references using nested subquery representations via `.related_fields()`.
+```python
+from zteradb import ZTeraDBQuery
+
+user_filter = (ZTeraDBQuery('user')
+    .select()
+    .filter({'status': True}))
+
+query = (ZTeraDBQuery('order')
+    .select()
+    .related_fields({
+        'user': user_filter  # Maps target collection bindings implicitly 
+    }))
+
+rows = await db.run(query)
+```
+
+**Equivalent SQL**
+```sql
+-- Conceptual Engine Join Mapping
+SELECT o.*, u.*
+FROM "order" o
+JOIN "user" u ON o.user_id = u.id
+WHERE u.status = TRUE;
+```
+
+---
+
+## 6️⃣ Result Set Modifiers {#6-result-set-modifiers}
+### Ascending Sorting Sequence
+```python
+from zteradb import ZTeraDBQuery
+
+query = (ZTeraDBQuery('product')
+    .select()
+    .sort({'price': 1}))  # 1 signifies Ascending sorting direction
+```
+
+**Equivalent SQL**
+```sql
+SELECT * FROM product ORDER BY price ASC;
+```
+
+### Multi-Key Compound Sorting
+
+```python
+from zteradb import ZTeraDBQuery
+
+query = (ZTeraDBQuery('product')
+    .select()
+    .sort({
+        'price': 1,     # Ascending
+        'quantity': -1  # -1 signifies Descending sorting direction
+    }))
+```
+
+**Equivalent SQL**
+```sql
+SELECT * FROM product ORDER BY price ASC, quantity DESC;
+```
+
+
+### Table Matrix Record Counting
+```python
+from zteradb import ZTeraDBQuery
+
+query = ZTeraDBQuery('product').count()
+result = await db.run(query)
+
+print(f"Active Table Row Count: {result['count']}")
+```
+
+**Equivalent SQL**
+```sql
+SELECT COUNT(*) AS count FROM product;
+```
+---
+
+## 🏆 Unified Master Blueprint Example
+The comprehensive blueprint below combines explicit field lookups, complex mathematical operators, exact-match flags, multi-index sorting arrangements, and strict window pagination limitations into a singular processing chain.
+```python
+from zteradb import ZTeraDBQuery
+from zteradb.query.filter_condition import ZTGT
+
+# 1. Build complex condition logic tree
+math_condition = ZTGT(['quantity', 10])
+
+# 2. Aggregate the composite processing sequence
+query = (ZTeraDBQuery('product')
+    .select()
+    .fields({
+        'name': 1, 
+        'price': 1, 
+        'quantity': 1
+    })
+    .filter_condition(math_condition)
+    .filter({'status': 'A'})
+    .sort({'price': 1})
+    .limit(0, 20))
+
+# 3. Execute query statement via storage connection driver
+products = await db.run(query)
+```
+
+**Compiled Pipeline Target Output**
+```sql
+SELECT name, price, quantity
+FROM product
+WHERE quantity > 10
+  AND status = 'A'
+ORDER BY price ASC
+LIMIT 20 OFFSET 0;
+```
+
+---
+
+### 🎉 Next Steps {#next-steps}
+* Learn more about complex filter operators inside the **[Filter Conditions Reference](./filter-condition.md)** matrix.
+* Need a quick end-to-end framework test configuration? See our structured **[Quick Start Guide](./quickstart.md)** setup path.

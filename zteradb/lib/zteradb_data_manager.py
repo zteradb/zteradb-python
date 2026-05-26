@@ -34,7 +34,7 @@ class DataManager:
         struct_fmt (str): The format string used for packing/unpacking the data.
         BUFFER_SIZE (int): The size of the buffer required for the data.
     """
-    struct_fmt = "!H"
+    struct_fmt = "!I"
     BUFFER_SIZE = struct.calcsize(struct_fmt)
 
     def __init__(self, data: bytes):

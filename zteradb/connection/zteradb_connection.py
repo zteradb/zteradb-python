@@ -23,10 +23,9 @@
 import logging
 import asyncio
 
-from .. import zteradb_config
-from .zteradb_query import ZTeraDBQuery
-from .zteradb_connection_protocol import ZTeraDBClientProtocol
-from ..zteradb_exception import AuthenticationFailed
+from zteradb.config import zteradb_config
+from zteradb.query.zteradb_query import ZTeraDBQuery
+from zteradb.protocol.zteradb_connection_protocol import ZTeraDBClientProtocol
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class ZTeraDBConnectionManager:
     limits are respected and provides methods for getting and releasing connections from the pool.
 
     Attributes:
-        zteradb_conf (zteradb_config.ZTeraDBConfig): Configuration object for the TeraDB instance.
+        zteradb_conf (zteradb_config_dep.ZTeraDBConfig): Configuration object for the TeraDB instance.
         host (str): Hostname or IP address of the TeraDB server.
         port (int): Port number of the TeraDB server.
         min_connections (int): Minimum number of connections to maintain in the pool.
@@ -141,7 +140,7 @@ class ZTeraDBConnectionManager:
         self._connections = asyncio.Queue()
 
         # Start an asynchronous task to initialize the connection pool
-        asyncio.ensure_future(self._async_init())
+        # asyncio.ensure_future(self._async_init())
 
     async def _async_init(self):
         """
@@ -203,12 +202,12 @@ class ZTeraDBConnectionManager:
         pool_options = self.zteradb_conf.options.connection_pool
 
         # Set min_connections if defined in the configuration, otherwise retain the default value
-        min_conn = pool_options["min"]
+        min_conn = pool_options.min
         if min_conn:
             self.min_connections = min_conn
 
         # Set max_connections if defined in the configuration, otherwise retain the default value
-        max_conn = pool_options["max"]
+        max_conn = pool_options.max
         if max_conn:
             self.max_connections = max_conn
 
@@ -229,32 +228,24 @@ class ZTeraDBConnectionManager:
         raises:
             Exception: If there is an issue connecting to the TeraDB server.
         """
-        try:
-            # Create a new instance of the ZTeraDBClientProtocol using the connection details.
-            connection = ZTeraDBClientProtocol(
-                host=self.host,
-                port=self.port,
-                zteradb_conf=self.zteradb_conf
-            )
+        # Create a new instance of the ZTeraDBClientProtocol using the connection details.
+        connection = ZTeraDBClientProtocol(
+            host=self.host,
+            port=self.port,
+            zteradb_conf=self.zteradb_conf
+        )
 
-            if not connection:
-                raise Exception("An error occurred while connecting to ZTeraDB server.")
+        if not connection:
+            raise Exception("An error occurred while connecting to ZTeraDB server.")
 
-            # Establish the connection to the TeraDB server asynchronously.
-            await connection.connect()
+        # Establish the connection to the TeraDB server asynchronously.
+        await connection.connect()
 
-            # Log the successful connection creation.
-            log.info(f"Successfully established connection to {self.host}:{self.port}")
+        # Log the successful connection creation.
+        log.info(f"Successfully established connection to {self.host}:{self.port}")
 
-            # Return the connected connection object.
-            return connection
-
-        except AuthenticationFailed as e:
-            pass
-
-        except Exception as e:
-            log.error(f"Failed to establish connection to {self.host}:{self.port}: {e}")
-            # raise AuthenticationFailed(f"Unable to create a new connection: {e}")
+        # Return the connected connection object.
+        return connection
 
     async def create_min_connections(self):
         """
@@ -327,7 +318,6 @@ class ZTeraDBConnectionManager:
             connection (ZTeraDBClientProtocol): The connection to be released back
                                                 into the connection pool.
         """
-        print("Release connection...")
         if connection is None:
             return
 
@@ -464,8 +454,12 @@ class ZTeraDBConnectionAsync:
         response = connection.execute_query(query=query, connection_manager=self.connection_manager,
                                             query_timeout=query_timeout)
         if not query.is_select_query:
-            response_data = await response.__anext__()
-            return response_data
+            try:
+                response_data = await response.__anext__()
+                return response_data
+
+            except StopAsyncIteration as e:
+                return None
 
         else:
             return response

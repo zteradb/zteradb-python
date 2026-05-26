@@ -11,7 +11,7 @@
 #
 # Note: You will need to change email with actual email
 #
-# License: ZTeraDB
+# Licence: ZTeraDB
 # Copyright (c) 2025 ZTeraDB
 #
 # The code in this file is proprietary and confidential. It may not be shared,
@@ -20,13 +20,14 @@
 #
 # All rights are reserved to the copyright holder.
 #
-# License URL: https://zteradb.com/licence
+# Licence URL: https://zteradb.com/licence
 # -----------------------------------------------------------------------------
 
 import asyncio
 from typing import AsyncIterator
 
-from zteradb import ZTeraDBQuery, ZTeraDBConnectionAsync
+from zteradb.query import ZTeraDBQuery
+from zteradb.connection import ZTeraDBConnectionAsync
 from examples.common import get_zteradb_config, get_connection_params
 
 # Function to retrieve users from the 'user' table based on the provided email

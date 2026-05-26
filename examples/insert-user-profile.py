@@ -7,7 +7,7 @@
 #              operations, and environment variables are used to configure the
 #              database connection.
 #
-# License: ZTeraDB
+# Licence: ZTeraDB
 # Copyright (c) 2025 ZTeraDB
 #
 # The code in this file is proprietary and confidential. It may not be shared,
@@ -16,10 +16,11 @@
 #
 # All rights are reserved to the copyright holder.
 #
-# License URL: https://zteradb.com/licence
+# Licence URL: https://zteradb.com/licence
 # -----------------------------------------------------------------------------
 import asyncio
-from zteradb import ZTeraDBQuery, ZTeraDBConnectionAsync
+from zteradb.query import ZTeraDBQuery
+from zteradb.connection import ZTeraDBConnectionAsync
 from examples.common import get_zteradb_config, get_connection_params
 
 

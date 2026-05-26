@@ -1,296 +1,233 @@
-# ZTeraDBQuery
-### `ZTeraDBQuery(schema_name: string, database_name: Optional[string])`
+---
+sidebar_position: 4
+---
 
-- **Description**: Initializes a new query with the provided `schema_name` (required) and an optional `database_name`.
-- **Parameters**:
-  - `schema_name`: (string) The name of the schema. This is a required field.
-  - `database_name`: (string, optional) The name of the database. Default is an empty string. For rest API the database_name is required field and if the database_name argument is empty then the query.query() will raise error.
+# 🔍 Query Builder
 
-<!-- ## Table of Contents
-
-1. [Overview](#overview)
-2. [Constructor](#constructor)
-3. [Methods](#methods)
-    1. [insert](#insert)
-    2. [select](#select)
-    3. [update](#update)
-    4. [delete](#delete)
-    5. [fields](#fieldsparams-field-value)
-    6. [relatedFields](#relatedfieldsparams-arrayzteradbquery)
-    7. [filterGroup](./filter-condition)
-    8. [filter](#filterparams-field-value)
-    9. [sort](#sortparams-field-sort)
-    10. [limit](#limitstart-number-end-number)
-    11. [count](#count)
-    12. [generate query](#generate)
-
---- -->
-
-### Overview
-
-The `ZTeraDBQuery` class provides an intuitive and flexible way to construct queries for a variety of ZTeraDB operations, including **INSERT**, **SELECT**, **UPDATE**, and **DELETE**.
-
-### Key Features:
-
-- **Method Chaining**: Developers can build queries step-by-step, using method chaining for easy configuration of query components.
-  
-- **Query Customization**: The class allows you to specify key parts of the query, such as:
-  - Fields to include or exclude
-  - Filters (conditions) for query results
-  - Sorting order
-  - Limits on the number of results
-  - Counting of records
-  - Related fields for joins or associations
-
-- **Structured Query Construction**: Query components are organized in a clear, structured way, ensuring that the query is easy to read and modify.
-
-- **Validation**: The class automatically validates required fields and ensures that query parameters are correctly set, reducing the risk of errors.
-
-Once the query is built, you can pass it to the `ZTeraDB Rest API` or `ZTeraDBConnection` object to execute the operation.
-
-
-### Features:
-
-- **Dynamic Query Creation**: Build queries dynamically using method chaining for easy and flexible configuration.
-  
-- **Field Selection**: Select specific fields or include all fields in the query results.
-  
-- **Filter Fields**: Filter fields by specific values, allowing precise query results.
-
-- **Filter Condition**: Use operators like `ZTGT` (greater than), `ZTLT` (less than), `ZTCONTAINS`, and others to apply advanced filtering conditions.
-
-- **Related Field**: Search and retrieve data from related fields (e.g., through joins or associations).
-
-- **Sorting**: Sort results in ascending or descending order.
-
-- **Pagination**: Limit the number of results returned through pagination (using a `limit`).
-
-- **Count Records**: Include a flag to count the total number of records matching the query conditions.
-
-- **Validation**: Automatically ensures that required fields are provided before executing the query, preventing errors.
-
-
-### Notes
- - The class provides a method chaining syntax for building complex queries in a structured and readable manner.
- - It is essential to call the appropriate query type method (`insert()`, `select()`, `update()`, or `delete()`) before generating the query.
- - Filters are applied to narrow down the data being fetched or modified. Fields and related fields can be specified for SELECT or UPDATE operations.
- - The sorting functionality allows for ordering the results based on specific fields in either ascending or descending order.
- - The `limit()` method is used to specify a range of rows for the query result.
- - The `generate()` method outputs the final ZTeraDB query object that can be passed to the ZTeraDB host execution engine. This method is required only when you are using `ZTeraDB rest API`.
-
+The `ZTeraDBQuery` class provides a type-safe, fluent, and chainable interface to build database operations across your entire infrastructure without writing raw SQL.
 
 ---
 
-# Methods
+## 🎯 Core Capabilities
 
-### Query Type methods
----
-  #### `insert()`
+`ZTeraDBQuery` encapsulates standard CRUD actions and advanced data modification matrices into an abstracted object:
 
-  - **Description**: Sets the query type to `INSERT`, enabling the insertion of new records. This method call is necessary for performing insert operations.
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+* **Unified Syntax:** Write queries once; execute seamlessly regardless of whether the target database is relational or document-oriented.
+* **Filtering Strategies:** Apply both simple strict-equality filters and complex operational abstract syntax trees (ASTs).
+* **Sorting Matrices:** Define index priority scan orders cleanly via directional weighting markers.
+* **Pagination Control:** Restrict network payload weight sizes natively via structural offset limiting.
+* **Related Field Lookups (Joins):** Perform effortless entity relation stitching by recursively scoping query parameters inside connected models.
+* **Prevent Injection:** Parameters are structurally parsed to isolate execution logic from data inputs.
 
-  #### `select()`
-
-  - **Description**: Sets the query type to `SELECT`, indicating that the query will retrieve data. This method call is necessary for performing select operations.
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
-
-  #### `update()`
-
-  - **Description**: Sets the query type to UPDATE, allowing modification of existing records. This method call is necessary for performing update operations.
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
-
-  #### `delete()`
-
-  - **Description**: Sets the query type to `DELETE`, enabling the removal of records. This method call is necessary for performing delete operations.
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
-
-
-### Query parameters and filter conditions
 ---
 
-### `fields(**kwargs: Dict[str, Any])`
+## 🧠 Query Lifecycle
 
-- **Description**: This method is required when you need to select, insert, or update specific fields in a query. It allows you to define the field (schema field) and its corresponding value for select, insert, or update operations:
-  - For select, set the field value to 1 to include it in the query.
-  - For insert, specify the actual value to modify the field.
-  - For update, specify the actual value to modify the field.
+```mermaid
+graph LR
+    %% Execution Nodes
+    Init["1. Instantiate ZTeraDBQuery<br />🛠️ Define target schema target"]
+    Type["2. Set Operation Type<br />⚡ select(), insert(), update(), or delete()"]
+    Mods["3. Configure Modifiers<br />⚙️ fields(), filter(), sort(), limit(), relatedFields()"]
+    Run["4. Dispatch Execution<br />🚀 Handled via db.run()"]
 
-- **Parameters**:
-  - `kwargs`: Arbitrary keyword arguments where each key is a field name (string) and the corresponding value is the field's value. These values should not be objects.
-    - **example**:
-      - **Select**: Retrieve the `name` and `age` of all users from the `users` schema.
-      ```python
-      
-      from zteradb import ZTeraDBQuery
+    %% Pipeline Flow
+    Init --> Type --> Mods --> Run
 
-      query = ZTeraDBQuery("user") \
-        .select() \
-        .fields(name=1, age=1)
+    %% Pro Developer Theme Styling
+    style Init fill:#ffffff,stroke:#0f172a,stroke-width:2.5px,color:#0f172a,font-weight:bold
+    style Type fill:#eff6ff,stroke:#2563eb,stroke-width:2.5px,color:#1e40af,font-weight:bold
+    style Mods fill:#f5f3ff,stroke:#7c3aed,stroke-width:2.5px,color:#5b21b6,font-weight:bold
+    style Run fill:#ecfdf5,stroke:#059669,stroke-width:2.5px,color:#065f46,font-weight:bold
+```
 
-      ```
-      - **Insert**: Insert a new record into the `user` schema.
-      ```python
+---
 
-      from zteradb import ZTeraDBQuery
+## 🏗 Operations Matrix
 
-      query = ZTeraDBQuery("user") \
-        .insert() \
-        .fields(name="John", email="john@example.com", age=33)
+| Operation | Method | Primary Purpose |
+| :--- | :--- | :--- |
+| **Read** | `.select()` | Retrieves records from the target collection/schema. |
+| **Create** | `.insert()` | Appends new datasets or entries to the infrastructure layer. |
+| **Update** | `.update()` | Modifies existing values based on matched criteria. |
+| **Destroy** | `.delete()` | Purges target rows/documents from persistence layers. |
 
-      ```
-      - **Update**: Update the `name` from 'John' to 'John Doe' where the `email` is 'john@example.com' in the `user` schema.
-      ```python
+---
 
-      from zteradb import ZTeraDBQuery
+## 🕹 Initializing a Query Instance
+Pass your targeted table or schema name directly to the class constructor block.
 
-      query = ZTeraDBQuery("user") \
-        .update() \
-        .fields(name="John Doe") \
-        .filter(email="john@example.com")
+```python
+from zteradb import ZTeraDBQuery
 
-      ```
+query = ZTeraDBQuery("schemaName")
+```
+---
 
-- **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+## 🏷 Executing Basic CRUD Operations
+1. SELECT (with Field Projections)
 
-- **Note**: The filter value is case-sensitive and will not work in a case-insensitive manner.
+```python
+query = (
+    ZTeraDBQuery("user")
+    .select()
+    .fields({
+        "email": 1,
+        "status": 1
+    })
+)
+```
 
+2. INSERT
+Always bind your input data state to the runtime context via `.fields()` right after executing your creation hooks.
 
-### `related_fields(**kwargs: Dict[str, ZTeraDBQuery])`
-  - **Description**: Add one or more related fields to the current query. A related field is a field that references
-        another query. This method accepts keyword arguments where the key is the related field name
-        (string) and the value is the associated ZTeraDBQuery instance.This method is necessary only when the schema contains related fields (related schema fields), and you need to select, insert, or update those related fields in the query.
+```python
+query = (
+    ZTeraDBQuery("user")
+    .insert()
+    .fields({
+        "name": "John",
+        "email": "john@test.com",
+        "status": True
+    })
+)
+```
 
-    - **Parameters**:
-      - `params`: A dictionary of related fields where each key is a related field name (string) and each value is an instance of ZTeraDBQuery.
-        - **example**: Retrieve all orders from the `order` schema where the `order.user.email` (with `order.user` being from the `user` schema) is 'john.doe@example.com'.
-          ```python
+3. UPDATE
+Combines data mutations assigned through `.fields()` alongside conditional filtering targets.
 
-        from zteradb import ZTeraDBQuery
+```python
+query = (
+    ZTeraDBQuery("user")
+    .update()
+    .fields({"status": False})
+    .filter({"id": 1})
+)
+```
 
-        ZTeraDBQuery("profile") \
-            .select() \
-            .related_field(
-                user=ZTeraDBQuery("user") \
-                .select() \
-                .filter(email="john.doe@example.com")
-            )
+4. DELETE
+Restricts target deletion records utilizing basic evaluation scope parameters.
+```python
+query = (
+    ZTeraDBQuery("user")
+    .delete()
+    .filter({"id": 5})
+)
+```
 
-          ```
-  
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+---
 
+## 🎯 Query Filtering Strategy
+ZTeraDB supports two execution paths for evaluation constraints depending on query complexity.
 
-### `filter_condition(filter_condition: ZTeraDBFilterCondition)`
-  - **Description**: Adds an advanced filter condition to the query.
-        This method allows the addition of a custom filter condition to the query. The
-        provided `filter_condition` should be an instance of `ZTeraDBFilterCondition`.
-        The method appends the filter condition's fields to the internal list of filter conditions.
+### Basic Key-Value Matching (`filter`)
+For deterministic equality evaluations (`WHERE field = value`), use the high-performance dictionary layout.
+```python
+query.filter({"status": True})
+query.filter({"id": 10})
+query.filter({"email": "abc@test.com"})
+```
 
-  - **Parameters**:
-    - `filterCondition`: An instance of `ZTeraDBFilterCondition` that defines a custom filter to be added to the query.
-      - **example**: Retrieve all products from the product schema where the quantity of any product is greater than 3.
-        ```python
+### Advanced AST Parsing (filter_condition)
+For complex functional evaluations containing algebraic computations, multi-conditional clauses, or mathematical boundaries, use AST operation wrappers imported from the library.
 
-        from zteradb import ZTeraDBQuery, ZTGT
+```python
+from zteradb.query.filter_condition import ZTEQUAL, ZTMUL
 
-        query = ZTeraDBQuery("product") \
-            .filterCondition(
-              ZTGT(["quantity", 3])
-            )
+# Compiles to: WHERE price * quantity = 200
+query.filter_condition(
+    ZTEQUAL([
+        ZTMUL(["price", "quantity"]),
+        200
+    ])
+)
+```
 
-        ```
-  - **raises**: ValueError: If the `filter_condition` is not an instance of `ZTeraDBFilterCondition`.
-  - **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+---
 
+## 🔗 Related Fields Lookup (Joins)
+Entity relationships can be fetched and stitched recursively by embedding isolated query builder pipelines into properties via `.related_fields()`.
+```python
+# 1. Establish the isolated scope constraint for the related entity
+user_filter = (
+    ZTeraDBQuery("user")
+    .select()
+    .fields({"email": 1})
+    .filter({"status": True})
+)
 
-### `filter(params: Dict[str, any])`
+# 2. Map the relationship scope directly into the host query pipeline
+query = (
+    ZTeraDBQuery("order")
+    .select()
+    .related_fields({
+        "user": user_filter
+    })
+)
+```
 
-- **Description**: This method allows you to specify filter criteria for the query by providing
-        field-value pairs (e.g., `field = value`). Each field represents a schema field in the query, and the
-        corresponding value is the filter value associated with that field.
+---
 
-- **Parameters**:
-  - `params`: (object) A dictionary of filter conditions.
-    - **example**: Retrieve the user from the `user` schema where the `name` is 'john' and the `age` is 30.
+## 📚 Sorting, Pagination, & Aggregations
+### Sorting Modifiers
+Configure delivery sorting vectors using standard indexing weights: `1` for Ascending and `-1` for Descending execution orders.
+```python
+query.sort({"price": 1})   # Ascending (Low to High)
+query.sort({"price": -1})  # Descending (High to Low)
+```
 
-      ```python
+### Offset Pagination
+Limit network payload memory sizes at runtime by requesting distinct chunk offsets via `.limit(offset: int, count: int)`.
+```python
+query.limit(0, 10) # Fetches the first 10 matching records
+```
 
-      from zteradb import ZTeraDBQuery
+### Count Aggregations
+To return an integer indexing the total quantity of rows matching your parameters without retrieving heavy data payloads, call `.count()`.
+```python
+query.count()
+```
 
-      query = ZTeraDBQuery("user") \
-        .filter(name="john", age=30)
+---
 
-      ```
+## 🧪 Comprehensive Blueprint Example
 
-- **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+```python
+# query_example.py
 
+from zteradb.query import ZTeraDBQuery
 
-### `sort(**kwargs: Dict[str, Sort])`
+query = (
+    ZTeraDBQuery("product")
+    .select()
+    .fields({
+        "name": 1, 
+        "price": 1
+    })
+    .filter({"status": "A"})
+    .sort({"price": 1})
+    .limit(0, 20) # From the beginning, fetch the top 20 records
+)
+```
 
-- **Description**: Applies sorting to the query results based on the specified fields and order (ascending/descending).
-- **Parameters**:
-  - `kwargs`: A dictionary where each key is the field name (string) to sort by, and each value is the sort order (either 1 for ascending or -1 for descending).
-    - **example**: Retrieve all users from the `user` schema, sorted by `name` in ascending order and `age` in descending order.
-      ```python
-      from zteradb import ZTeraDBQuery, Sort
+---
 
-      query = ZTeraDBQuery("user") \
-        .sort(name= Sort.ASC, age=Sort.DESC)
-      ```
-      or
-      ```python
+## ⚠️ Common Developer Anti-Patterns
 
-      from zteradb import ZTeraDBQuery
+* ❌ **Over-using Complex Operations:** Invoking `filter_condition()` for simple, strict equalities.
+    * Fix: Default to `.filter()` for strict key-value dictionaries to leverage internal driver string-parsing optimizations.
 
-      query = ZTeraDBQuery("user") \
-        .sort(name= 1, age=-1)
+* ❌ **Skipping Input Payload Mappings:** Forgetting to pass dictionary attributes via `.fields()` during creation or patch cycles.
+    * Fix: The driver throws runtime exceptions if data mutation states are missing during an `insert()` or `update()`.
 
-      ```
-- **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
+* ❌ **Invalid Sort Directions:** Passing arbitrary string evaluation characters like `"ASC"`, `"DESC"`, or an un-indexed boundary step like `0`.
+    * Fix: Strictly utilize `1` or `-1` for direction control.
 
+* ❌ **Instantiating Without Schema Identifiers:** Attempting to build an orphan configuration without giving the constructor a target database schema.
+    * Fix: Always pass a valid schema name into the `ZTeraDBQuery()` invocation sequence.
 
-### `limit(start: number, end: number)`
+---
 
-- **Description**: Limits the query results to a specific range (for pagination).
-
-- **Parameters**:
-  - `start`: (integer) The starting index of the results.
-  - `end`: (integer) The ending index of the results.
-
-- **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
-
-- **example**: The following query will return the first 10 users.
-    ```python
-
-    from zteradb import ZTeraDBQuery
-
-    query = ZTeraDBQuery("user") \
-      .limit(0, 10)
-    ```
-
-### `count()`
-
-- **Description**: Switches the query to count mode, returning the number of records rather than the data itself.
-
-- **Returns**: The `ZTeraDBQuery` instance (supports method chaining).
-
-- **example**: The following query will return the total number of users.
-    ```python
-
-    from zteradb import ZTeraDBQuery
-
-    query = ZTeraDBQuery("user").count()
-
-    ```
-
-### `generate()`
-
-- **Description**: Finalizes the query construction and returns the generated query object. It validates all required fields before returning the final structure.
-
-- **Returns**: (object) The final query object, ready for execution.
-
-- **Throws**:
-  - Throws an error if any required fields (like `schema_name` or `queryType`) are missing or invalid.
-
-- **Note**: This method call is essential for retrieving the query and sending it to the ZTeraDB server when using the REST API.
+### 🎉 Next Step
+Dive deep into creating relational conditions, nested logic expressions, and advanced query operators:  
+👉 **[Filter Condition Guide](./filter-condition.md)**

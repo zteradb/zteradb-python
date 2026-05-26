@@ -23,13 +23,13 @@
 import json
 import logging
 import asyncio
-from .zteradb_query import ZTeraDBQuery
-from .zteradb_auth import ZTeraDBClientAuth, ZTeraDBServerAuth
-from .zteradb_protocol import ZTeraDBTCPProtocol
-from . import zteradb_request_types
-# from .. import ZTeraDBConfig
-from ..zteradb_exception import QueryComplete, NoResponseDataError, AuthenticationFailed, ZTeraBaseError
-from ..helper.zteradb_common import ZTeraDBResponseData
+import ssl
+from zteradb.query.zteradb_query import ZTeraDBQuery
+from zteradb.auth.zteradb_auth import ZTeraDBClientAuth, ZTeraDBServerAuth
+from zteradb.protocol.zteradb_protocol import ZTeraDBTCPProtocol
+from zteradb.lib import zteradb_request_types
+from zteradb.exceptions.zteradb_exception import QueryComplete, NoResponseDataError, AuthenticationFailed, ZTeraBaseError, ZTeraDBQueryError
+from zteradb.helper.zteradb_common import ZTeraDBResponseData
 
 
 log = logging.getLogger(__name__)
@@ -212,34 +212,66 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
         assert isinstance(client_auth, dict), "Client auth must be a dictionary."
         client_auth["secret_key"] = self.secret_key
         client_auth = ZTeraDBClientAuth(**client_auth)
-        return client_auth.is_valid_request_token
+        return client_auth.is_valid_signature
 
     @is_connected.setter
     def is_connected(self, is_connected):
         self._is_connected = is_connected
 
-    @classmethod
-    async def get_connection(cls, connection):
+    async def open_connection(self):
         """
-        Establishes and returns a connection to the TeraDB server.
+        Establish an asynchronous TCP (optionally TLS-secured) connection to a ZTeraDB server.
 
-        :param connection: ZTeraDBClientProtocol - Connection details to initialize the connection.
-        :return: ZTeraDBClientProtocol - Returns a connected instance of ZTeraDBClientProtocol.
-        :raises: Exception - If connection or authentication fails.
+        This method:
+        1. Creates an SSL context if TLS is enabled in the configuration.
+        2. Configures SSL verification options based on the user's settings.
+        3. Opens a network connection to the configured host and port.
+        4. Stores the asyncio StreamReader and StreamWriter objects for data exchange.
+        5. Logs information about the established connection (TLS version and cipher suite).
+
+        Raises:
+            ssl.SSLError: If SSL/TLS setup or verification fails.
+            ConnectionRefusedError: If the server rejects the connection.
+            asyncio.TimeoutError: If the connection attempt times out.
+            OSError: For other socket-related errors.
+
+        Attributes:
+            _reader (asyncio.StreamReader): Stream reader for receiving data.
+            _writer (asyncio.StreamWriter): Stream writer for sending data.
+            zteradb_conf (object): Configuration object containing TLS and connection settings.
+            _host (str): Hostname or IP address of the ZTeraDB server.
+            _port (int): TCP port number of the ZTeraDB server.
+            conf (object): Configuration object with verification options.
 
         Example:
-            connection = await ZTeraDBClientProtocol.get_connection(connection)
+            await self.open_connection()
         """
-        obj = cls(
-            host=connection.host, port=connection.port,
-            zteradb_conf=connection.zteradb_conf
+        ssl_context = None
+
+        # Create SSL context if TLS is enabled
+        if self.zteradb_conf.use_tls:
+            # Create a secure default SSL context (verifies server certs by default)
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+
+            # Configure hostname verification
+            ssl_context.check_hostname = self.zteradb_conf.verify_tls_host
+
+            # Optionally disable certificate verification (insecure)
+            if not self.zteradb_conf.verify_tls_host:
+                ssl_context.verify_mode = ssl.CERT_NONE
+
+        # Establishing the connection to the ZTeraDB server.
+        self._reader, self._writer = await asyncio.open_connection(
+            host=self._host, port=self._port, ssl=ssl_context
         )
-        obj._reader, obj._writer = await asyncio.open_connection(
-            host=connection.host, port=connection.port
-        )
-        obj.set_server_auth(connection.server_auth)
-        obj._is_connected = connection.is_connected
-        return obj
+
+        if ssl_context:
+            # Retrieve SSL connection details for logging
+            ssl_object = self._writer.get_extra_info("ssl_object")
+            log.debug(f"✅ Connected using {ssl_object.version()} with {ssl_object.cipher()}")
+
+        else:
+            log.debug("✅ Connected without TLS (plain TCP)")
 
     async def connect(self):
         """
@@ -261,7 +293,7 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
 
         :raises: Exception - If the connection or authentication fails.
             - Example:
-                - If no response is received, an exception with the message `"No response received from TeraDB server."` is raised.
+                - If no response is received, an exception with the message `"No response received from ZTeraDB server."` is raised.
                 - If authentication fails, an exception with the message `"Authentication failed: <error details>"` is raised.
                 - If connection times out, a `Connection timeout` exception is raised.
 
@@ -279,10 +311,8 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             print(success)  # Output: True (if the connection and authentication are successful)
         """
         try:
-            # Establishing the connection to the ZTeraDB server.
-            self._reader, self._writer = await asyncio.open_connection(
-                host=self._host, port=self._port
-            )
+            # Create connection with ZTeraDB server
+            await self.open_connection()
 
             # Creating an authentication request with provided keys
             auth_manager = ZTeraDBClientAuth(
@@ -316,20 +346,43 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
                         self._is_connected = True
                         return True
 
+                # Log the error
+                log.error(f"Authentication failed: {response.data}", exc_info=True)
+
                 # Raise exception if authentication fails
                 raise AuthenticationFailed(f"Authentication failed: {response.data}")
             else:
+                # Log the error
+                log.error(f"No response received from ZTeraDB server.", exc_info=True)
+
                 # Raise exception if no response data received
-                raise NoResponseDataError("No response received from TeraDB server.")
+                raise NoResponseDataError("No response received from ZTeraDB server.")
+        
+        except ConnectionResetError:
+            log.error("Connection reset by peer", exc_info=True)
+            raise ZTeraBaseError("Connection reset by peer")
+
+        except ConnectionRefusedError:
+            log.error("Connection refused - server not accepting connections", exc_info=True)
+            raise ZTeraBaseError("Connection refused - server not accepting connections")
+
+        except OSError as e:
+            log.error(f"Connection error: {e}", exc_info=True)
+            raise ZTeraBaseError(f"Connection error: {e}")
 
         except asyncio.TimeoutError:
+            log.error("connection timeout", exc_info=True)
             # Raise exception if request timeout occurred
             raise ZTeraBaseError("Connection timeout. Please check the server's reachability.")
 
-        except AuthenticationFailed as e:
-            pass
+        except AuthenticationFailed:
+            raise
+
+        except NoResponseDataError:
+            raise
 
         except Exception as e:
+            log.error(e, exc_info=True)
             # Raise exception if connection error occurs
             raise ZTeraBaseError(f"Connection error: {str(e)}")
 
@@ -338,7 +391,7 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
         """
         Parses the response data from a query execution and handles errors, completion, or the data itself.
 
-        This method processes the `response_data` received after executing a query on the TeraDB server.
+        This method processes the `response_data` received after executing a query on the ZTeraDB server.
         It performs the following actions:
         1. Converts the `response_data` to JSON if it's not already in JSON format.
         2. Checks for errors in the response and raises an exception if any are found.
@@ -395,11 +448,11 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             response_data = response_data.from_json()
 
             if not isinstance(response_data, dict):
-                raise ZTeraBaseError(f"Invalid response received from ZTeraDB server. data: {response_data}")
+                raise ZTeraDBQueryError(f"Invalid response received from ZTeraDB server. data: {response_data}")
 
             # Check if the response contains an error
             if response_data["error"]:
-                raise ZTeraBaseError(response_data['data'])
+                raise ZTeraDBQueryError(response_data['data'])
 
             # Check if the response code indicates that the query is complete
             if response_data["response_code"] == zteradb_request_types.ResponseType.QUERY_COMPLETE.value:
@@ -474,7 +527,6 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             "request_type": zteradb_request_types.RequestType.QUERY.value,  # Set the request type as QUERY.
             "database_id": self.zteradb_conf.database_id,   # Set the database ID
             "env": self.zteradb_conf.env,   # Set the query environment
-            **self.server_auth.server_token()   # Add the authentication token from the server.
         }
 
         # Send the query request to the ZTeraDB server.

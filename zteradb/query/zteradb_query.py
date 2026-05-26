@@ -20,9 +20,9 @@
 # -----------------------------------------------------------------------------
 
 from dataclasses import dataclass
-from .zteradb_filter_conditions import ZTeraDBFilterCondition
-from .zteradb_query_type import ZTeraDBQueryType
-from ..zteradb_exception import ZTeraDBQueryError
+from zteradb.query.zteradb_filter_conditions import ZTeraDBFilterCondition
+from zteradb.query.zteradb_query_type import ZTeraDBQueryType
+from zteradb.exceptions.zteradb_exception import ZTeraDBQueryError
 
 # -----------------------------------------------------------------------------
 # Class Definitions:
@@ -705,7 +705,7 @@ class ZTeraDBQuery:
           restrict the results based on the provided criteria.
         """
         for field, value in kwargs.items():
-            if not isinstance(field, str) and field.strip():
+            if not isinstance(field, str):
                 raise ValueError(f"'{field}' must be a schema field")
 
             if value and not isinstance(value, (str, int, float, bool, complex, bytes)) and isinstance(value, object):
@@ -846,13 +846,13 @@ class ZTeraDBQuery:
             ValueError: If `start` or `end` is not an integer.
         """
         if not isinstance(start, int):
-            raise ValueError(f"Limit '{start}' must be an instance of the Limit")
+            raise ValueError(f"Limit '{start}' must be an integer")
 
         elif start < 0:
                 raise ValueError(f"Limit '{start}' must not be negative")
 
         if not isinstance(end, int):
-            raise ValueError(f"Limit '{start}' must be an instance of the Limit")
+            raise ValueError(f"Limit '{start}' must be an integer")
 
         if end is not None and end <= start:
             raise ValueError(f"Limit '{end}' must be greater than {start}")

@@ -19,8 +19,3 @@ class ZTeraDBResponseData:
 
         if not isinstance(self.data, dict):
             raise Exception(f"'{self.data}' is not valid data")
-
-
-if __name__ == "__main__":
-    z = ZTeraDBResponseData(error=False, client_auth=None, data="aa")
-    print(z)

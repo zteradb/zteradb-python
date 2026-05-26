@@ -24,20 +24,20 @@
 # Import the ZTeraDBConnection class from zteradb_connection.py, which is responsible
 # for managing the connection to the TeraDB service, including establishing
 # and closing connections.
-from .lib.zteradb_connection import ZTeraDBConnectionAsync
+from zteradb.connection.zteradb_connection import ZTeraDBConnectionAsync
 
 # Import the ZTeraDBConnection class from zteradb_connection.py, which is responsible
 # for managing the connection to the TeraDB service, including establishing
 # and closing connections.
-from .lib.zteradb_query import ZTeraDBQuery, Sort
+from zteradb.query.zteradb_query import ZTeraDBQuery, Sort
 
 # Import all the configuration settings and classes from zteradb_config.py.
 # This provides access to the configuration needed for interacting with the TeraDB
 # service, such as API keys, connection pool options, and environment settings.
-from .zteradb_config import *
+from zteradb.config.zteradb_config import *
 
 
 # Import all filter condition functions from the filter_condition_functions module.
 # These functions may include various utilities for filtering and processing data
 # for querying the TeraDB service.
-from .lib.zteradb_filter_condition_functions import *
+from zteradb.query.filter_condition import *

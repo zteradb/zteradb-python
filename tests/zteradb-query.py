@@ -30,7 +30,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from zteradb import ZTeraDBQuery, Sort, ZTeraDBQueryError
-from zteradb.lib.zteradb_query_type import ZTeraDBQueryType
+from zteradb.query.zteradb_query_type import ZTeraDBQueryType
 
 # Test Class for ZTeraDBQuery
 # This test suite is designed to test the functionalities of the ZTeraDBQuery class,

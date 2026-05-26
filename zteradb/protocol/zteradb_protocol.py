@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# File: zteradb_protocol.py
+# File: protocol/zteradb_protocol.py
 # Description: This file defines the ZTeraDBTCPProtocol class, which handles
 #              TCP communication for the ZTeraDB protocol. It manages reading
 #              and writing data asynchronously over a TCP connection, as well as
@@ -20,10 +20,11 @@
 
 import logging
 import asyncio
-import traceback
-from .zteradb_data_manager import DataManager
+from zteradb.lib.zteradb_data_manager import DataManager
+
 
 log = logging.getLogger(__name__)
+
 
 class ZTeraDBTCPProtocol(asyncio.Protocol):
     """
@@ -149,11 +150,24 @@ class ZTeraDBTCPProtocol(asyncio.Protocol):
         buffer = bytearray()
         while len(buffer) < data_size:
             if self._is_connected:
-                received_data = await self.reader.readexactly(data_size)
-                if not received_data:
-                    break
-                buffer.extend(received_data)
+                try:
+                    received_data = await self.reader.readexactly(data_size)
 
+                    if not received_data:
+                        break
+
+                    buffer.extend(received_data)
+
+                except asyncio.IncompleteReadError as e:
+                    # print(self.writer.transport.is_closing(), "hh")
+                    print(e)
+                    break
+
+                except Exception as e:
+                    log.error(e, exc_info=True)
+                    break
+
+        # print(f"{data_size=}, {len(buffer)=}, {self._is_connected=}")
         return buffer
 
     async def send(self, data: any):

@@ -1,6 +1,6 @@
-ZTeraDB LICENCE
+# 🥇 ZTeraDB Licence
 
-Copyright (c) 2026 ZTeraDB
+Copyright (c) 2025 ZTeraDB
 
 Terms and Conditions:
 
@@ -19,3 +19,6 @@ Terms and Conditions:
 
 6. **Governing Law**: This licence shall be governed by the laws of Thane.
 
+7. **Read the Terms**: [Terms](https://zteradb.com/terms)
+
+8. **Read the Privacy Policy**: [Privacy Policy](https://zteradb.com/privacy)
