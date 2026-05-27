@@ -1,4 +1,3 @@
-Python
 #!/usr/bin/env python
 # -----------------------------------------------------------------------------
 # File: setup.py
@@ -10,19 +9,26 @@ Python
 # -----------------------------------------------------------------------------
 import os
 from setuptools import setup, find_packages
-from version import __version__
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
-readme_path = os.path.join(base_dir, "README.md")
+
+version_ns = {}
+version_path = os.path.join(base_dir, "zteradb", "version.py")
+
+with open(version_path, encoding="utf-8") as f:
+    exec(f.read(), version_ns)
+
+package_version = version_ns.get("__version__")
 
 long_description = ""
+readme_path = os.path.join(base_dir, "README.md")
 if os.path.exists(readme_path):
     with open(readme_path, encoding="utf-8") as f:
         long_description = f.read()
 
 setup(
     name="zteradb",
-    version=__version__,
+    version=package_version,
     packages=find_packages(),
     install_requires=[],
     long_description=long_description,
