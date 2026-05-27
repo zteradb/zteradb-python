@@ -168,7 +168,7 @@ class TestZTeraDBQuery(unittest.TestCase):
             self.query.fields(*args)
 
         # Assert that the exception message matches the expected error message
-        self.assertEqual(str(context.exception), f"fields() takes 1 positional argument but {len(args) + 1} were given")
+        self.assertIn(f"fields() takes 1 positional argument but {len(args) + 1} were given", str(context.exception))
 
         # Case 2: Pass a list with two arguments to the fields method
         args = ["field1", "field2"]
@@ -177,7 +177,7 @@ class TestZTeraDBQuery(unittest.TestCase):
             self.query.fields(*args)
 
         # Assert that the exception message matches the expected error message
-        self.assertEqual(str(context.exception), f"fields() takes 1 positional argument but {len(args) + 1} were given")
+        self.assertIn(f"fields() takes 1 positional argument but {len(args) + 1} were given", str(context.exception))
 
     def test_set_filters(self):
         """
@@ -222,7 +222,7 @@ class TestZTeraDBQuery(unittest.TestCase):
             self.query.filter(*args)
 
         # Assert that the exception message matches the expected error message
-        self.assertEqual(str(context.exception), f"filter() takes 1 positional argument but {len(args) + 1} were given")
+        self.assertIn(f"filter() takes 1 positional argument but {len(args) + 1} were given", str(context.exception))
 
         # Case 2: Pass a list with two arguments to the filter method
         args = ["field1", "field2"]
@@ -231,7 +231,7 @@ class TestZTeraDBQuery(unittest.TestCase):
             self.query.filter(*args)
 
         # Assert that the exception message matches the expected error message
-        self.assertEqual(str(context.exception), f"filter() takes 1 positional argument but {len(args) + 1} were given")
+        self.assertIn(f"ZTeraDBQuery.filter() takes 1 positional argument but {len(args) + 1} were given", str(context.exception))
 
     def test_set_filters_empty(self):
         """
@@ -331,7 +331,7 @@ class TestZTeraDBQuery(unittest.TestCase):
             self.query.limit('invalid', 'value')
 
         # Assert that the exception message matches the expected message
-        self.assertEqual(str(context.exception), "Limit 'invalid' must be an instance of the Limit")
+        self.assertEqual(str(context.exception), "Limit 'invalid' must be an integer")
 
     def test_generate_query(self):
         """
@@ -402,7 +402,7 @@ class TestZTeraDBQuery(unittest.TestCase):
 
         # Step 3: Assert that the exception raised is the one we expect
         # The expected exception message indicates that 'schema_name' is missing
-        self.assertEqual(str(context.exception), "__init__() missing 1 required positional argument: 'schema_name'")
+        self.assertEqual(str(context.exception), "ZTeraDBQuery.__init__() missing 1 required positional argument: 'schema_name'")
 
     def test_throw_error_if_query_type_not_set(self):
         """

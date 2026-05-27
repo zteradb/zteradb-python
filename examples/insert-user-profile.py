@@ -8,7 +8,6 @@
 #              database connection.
 #
 # Licence: ZTeraDB
-# Copyright (c) 2025 ZTeraDB
 #
 # The code in this file is proprietary and confidential. It may not be shared,
 # re-engineered, reverse-engineered, modified, or distributed in any way without
@@ -21,7 +20,7 @@
 import asyncio
 from zteradb.query import ZTeraDBQuery
 from zteradb.connection import ZTeraDBConnectionAsync
-from examples.common import get_zteradb_config, get_connection_params
+from common import get_zteradb_config, get_connection_params
 
 
 # Insert a new user into the 'user' table

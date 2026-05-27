@@ -8,7 +8,6 @@
 # Note: Ensure the 'product_id' is updated with an actual product ID before running.
 #
 # Licence: ZTeraDB
-# Copyright (c) 2025 ZTeraDB
 #
 # The code in this file is proprietary and confidential. It may not be shared,
 # re-engineered, reverse-engineered, modified, or distributed in any way without
@@ -22,7 +21,7 @@
 import asyncio
 from zteradb.query import ZTeraDBQuery
 from zteradb.connection import ZTeraDBConnectionAsync
-from examples.common import get_zteradb_config, get_connection_params
+from common import get_zteradb_config, get_connection_params
 
 # Function to delete an order from the 'order' table based on a specific product ID.
 async def delete_order(connection: ZTeraDBConnectionAsync, product_id: str) -> bool:

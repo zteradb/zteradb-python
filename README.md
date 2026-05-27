@@ -18,7 +18,7 @@ You never connect to your backend databases directly. ZTeraDB handles all connec
 graph LR
     %% Node Definitions
     App["Your App"]
-    Client["ZTeraDB PHP Client"]
+    Client["ZTeraDB Python Client"]
     Server["ZTeraDB Server"]
     DB[("Your Databases")]
 
@@ -40,12 +40,12 @@ graph LR
 ## ⭐ Key Features
 
 *   🚀 **Unified Query Language (ZQL):** Write once, run on any database.
-*   🔌 **Easy Integration:** Seamlessly plugs into any PHP application.
+*   🔌 **Easy Integration:** Seamlessly plugs into any Python application.
 *   ⚙️ **Auto-Managed Connections:** Handles connection pooling and automatic retries.
 *   🔐 **Secure Authentication:** Protected via client, access, and secret keys.
 *   🎯 **Clean Query Builder:** Fluent interface for standard CRUD operations (`insert`, `select`, `update`, `delete`).
 *   🔍 **Advanced Filtering:** Built-in support for complex logical and mathematical filters.
-*   🧵 **Streamed Results:** Efficiently memory-manages large datasets using PHP generators.
+*   🧵 **Streamed Results:** Efficiently memory-manages large datasets using Python generators.
 *   📦 **Modern Ecosystem:** Composer-ready and fully compatible with frameworks like Laravel, Symfony, and CodeIgniter.
 
 ---
@@ -76,6 +76,48 @@ Alternatively, you can pull the package directly from GitHub using pip's VCS sup
 pip install git+https://github.com/zteradb/zteradb-python.git
 ```
 
+---
+
+## 🧪 Running Tests
+
+To verify that your installation is working correctly and the client can communicate with your environment, you can run the test suite.
+
+### 1. Configure Environment Variables
+Create a `.env` file in your root directory (or export them to your environment):
+
+```bash
+# Your ZTeraDB server host
+ZTERADB_HOST=localhost
+
+# Your ZTeraDB server port
+ZTERADB_PORT=7777
+
+# Get this from dashboard
+ZTERADB_CLIENT_KEY=your_client_key_here
+ZTERADB_ACCESS_KEY=your_access_key_here
+ZTERADB_SECRET_KEY=your_secret_key_here
+ZTERADB_DATABASE_ID=your_database_id_here
+ZTERADB_ENV=dev
+ZTERADB_RESPONSE_TYPE=json
+ZTERADB_MIN_CONN=0
+ZTERADB_MAX_CONN=1
+USE_TLS=False
+VERIFY_TLS_HOST=False
+```
+
+### 2. Run the Test Scripts
+Execute the test suite using either the built-in Python unittest framework or pytest:
+```bash
+# Using standard Python unittest mapping
+python -m unittest discover -s tests
+
+pytest
+```
+
+If you prefer to run a single test module file explicitly:
+```bash
+python -m unittest tests/test_zteradb_query.py
+```
 ---
 
 ## 🚀 60-Second Quick Start
