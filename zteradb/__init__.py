@@ -48,4 +48,4 @@ from .config.response_data_types import ResponseDataTypes
 # catch appropriate errors coming from zteradb query, connection and server.
 from .exceptions.zteradb_exception import *
 
-__version__ = '2.0.0'
+from version import __version__
