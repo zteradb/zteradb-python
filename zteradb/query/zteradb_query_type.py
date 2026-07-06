@@ -36,11 +36,11 @@ class ZTeraDBQueryType(enum.Enum):
     """
 
     # Query types
-    INSERT = 0X1 # Insert operation
-    SELECT = 0X2 # Select operation
-    UPDATE = 0X3 # Update operation
-    DELETE = 0X4 # Delete operation
-    NONE = None  # No query type
+    INSERT = 0X0001 # Insert operation
+    SELECT = 0X0002 # Select operation
+    UPDATE = 0X0003 # Update operation
+    DELETE = 0X0004 # Delete operation
+    NONE = 0X000  # No query type
 
     def __str__(self):
         """

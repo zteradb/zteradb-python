@@ -27,7 +27,53 @@ from zteradb.config import zteradb_config
 from zteradb.query.zteradb_query import ZTeraDBQuery
 from zteradb.protocol.zteradb_connection_protocol import ZTeraDBClientProtocol
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
+
+
+class QueryIterator:
+    def __init__(self, manager, connection, iterator):
+        self.manager = manager
+        self.connection = connection
+        self.iterator = iterator
+        self.closed = False
+
+    async def fetch_one(self):
+        try:
+            return await anext(self.iterator)
+        except StopAsyncIteration:
+            return None
+        finally:
+            await self.close()
+
+    def __aiter__(self):
+        return self
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+    async def __anext__(self):
+        try:
+            return await anext(self.iterator)
+        except StopAsyncIteration:
+            await self.close()
+            raise
+
+        except Exception:
+            await self.close()
+            raise
+
+        finally:
+            await self.close()
+
+    async def close(self):
+        if not self.closed:
+            self.closed = True
+
+    async def aclose(self):
+        await self.close()
 
 
 class ZTeraDBConnectionManager:
@@ -36,7 +82,7 @@ class ZTeraDBConnectionManager:
     limits are respected and provides methods for getting and releasing connections from the pool.
 
     Attributes:
-        zteradb_conf (zteradb_config_dep.ZTeraDBConfig): Configuration object for the TeraDB instance.
+        zteradb_conf (zteradb_config.ZTeraDBConfig): Configuration object for the TeraDB instance.
         host (str): Hostname or IP address of the TeraDB server.
         port (int): Port number of the TeraDB server.
         min_connections (int): Minimum number of connections to maintain in the pool.
@@ -107,7 +153,7 @@ class ZTeraDBConnectionManager:
         """
         # The zteradb_conf object must be an instance of ZTeraDBConfig
         if not isinstance(zteradb_conf, zteradb_config.ZTeraDBConfig):
-            raise Exception(f"'zteradb_conf' is not valid ZTeraDBConfig")
+            raise Exception(f"'zteradb_config' is not valid ZTeraDBConfig")
 
         # Validate the TeraDB configuration object to ensure it has correct data
         zteradb_conf.is_valid()
@@ -453,16 +499,12 @@ class ZTeraDBConnectionAsync:
         # Execute the query asynchronously and yield the data as it is retrieved
         response = connection.execute_query(query=query, connection_manager=self.connection_manager,
                                             query_timeout=query_timeout)
-        if not query.is_select_query:
-            try:
-                response_data = await response.__anext__()
-                return response_data
+        query_iterator = QueryIterator(self.connection_manager, connection, response)
 
-            except StopAsyncIteration as e:
-                return None
+        if query.is_select_query:
+            return query_iterator
 
-        else:
-            return response
+        return await query_iterator.fetch_one()
 
     async def close(self):
         """

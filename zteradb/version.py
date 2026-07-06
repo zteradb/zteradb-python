@@ -3,4 +3,4 @@
 # Description: Single source of truth for the package version metadata.
 # -----------------------------------------------------------------------------
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"

@@ -12,23 +12,28 @@ from setuptools import setup, find_packages
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
-version_ns = {}
-version_path = os.path.join(base_dir, "zteradb", "version.py")
-
-with open(version_path, encoding="utf-8") as f:
-    exec(f.read(), version_ns)
-
-package_version = version_ns.get("__version__")
-
 long_description = ""
 readme_path = os.path.join(base_dir, "README.md")
 if os.path.exists(readme_path):
     with open(readme_path, encoding="utf-8") as f:
         long_description = f.read()
 
+version_file_path = os.path.join(base_dir, "zteradb/version.py")
+
+def get_version():
+    if os.path.exists(version_file_path):
+        with open(version_file_path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith('__version__'):
+                    delim = '"' if '"' in line else "'"
+                    return line.split(delim)[1]
+            raise RuntimeError("Unable to find version string.")
+
+package_version = "2.0.1"
+
 setup(
     name="zteradb",
-    version=package_version,
+    version=get_version(),
     packages=find_packages(),
     install_requires=[],
     long_description=long_description,

@@ -51,29 +51,30 @@ class RequestType(enum.Enum):
         NONE: Represents no specific request type.
     """
 
-    CONNECT = 0x001
-    DISCONNECT = 0x003
-    QUERY = 0x005
-    PING = 0x007
-    CREATE_SCHEMA = 0x008
-    PUBLISH_SCHEMA = 0x009
-    DATABASE = 0x010
-    ACTIVE_DATABASE = 0x011
-    SCHEMA = 0x012
-    SCHEMA_FIELDS = 0x013
-    SCHEMA_RELATED = 0x014
-    SCHEMA_ACCESS = 0x015
-    DATABASE_ACCESS = 0x016
-    ENTERPRISE_USER = 0x017
-    ROLE = 0x018
-    ACCESS_CONTROL = 0x019
-    ZTERADB_INSTANCE = 0x020
-    ZTERADB_ENTERPRISE_INSTANCE = 0x021
-    ZTERADB_ENTERPRISE_INSTANCE_GROUP = 0x022
-    ENTERPRISE_INSTANCE = 0x023
-    CREDENTIALS = 0x024
-    USER_PROFILE = 0X025
-    NONE = None
+    CONNECT = 0x0001
+    DISCONNECT = 0x0003
+    CANCEL = 0x0004
+    QUERY = 0x0005
+    PING = 0x0007
+    CREATE_SCHEMA = 0x0008
+    PUBLISH_SCHEMA = 0x0009
+    DATABASE = 0x0010
+    ACTIVE_DATABASE = 0x0011
+    SCHEMA = 0x0012
+    SCHEMA_FIELDS = 0x0013
+    SCHEMA_RELATED = 0x0014
+    SCHEMA_ACCESS = 0x0015
+    DATABASE_ACCESS = 0x0016
+    ENTERPRISE_USER = 0x0017
+    ROLE = 0x0018
+    ACCESS_CONTROL = 0x0019
+    ZTERADB_INSTANCE = 0x0020
+    ZTERADB_ENTERPRISE_INSTANCE = 0x0021
+    ZTERADB_ENTERPRISE_INSTANCE_GROUP = 0x0022
+    ENTERPRISE_INSTANCE = 0x0023
+    CREDENTIALS = 0x0024
+    USER_PROFILE = 0X0025
+    NONE = 0x000
 
     def get_name(self):
         """
@@ -104,6 +105,7 @@ class ResponseType(enum.Enum):
     Attributes:
         CONNECTED: A response indicating a successful connection.
         CONNECT_ERROR: A response indicating an error in the connection process.
+        INVALID_REQUEST_TYPE_ERROR: A response indicating the request type is invalid.
         DISCONNECTED: A response indicating successful disconnection.
         DISCONNECT_ERROR: A response indicating an error in the disconnection process.
         CLIENT_AUTH_ERROR: A response indicating a client authentication error.
@@ -123,25 +125,26 @@ class ResponseType(enum.Enum):
         NONE: Represents no specific response type.
     """
 
-    CONNECTED = 0x002
-    CONNECT_ERROR = 0x500
-    DISCONNECTED = 0x004
-    DISCONNECT_ERROR = 0x005
-    CLIENT_AUTH_ERROR = 0x006
-    QUERY_DATA = 0x007
-    QUERY_COMPLETE = 0x608
-    QUERY_ERROR = 0x09
-    PONG = 0x010
-    PARSE_QUERY_ERROR = 0x100
-    NO_ACCESS = 0x011
-    TOKEN_EXPIRED = 0x400
-    INVALID_SCHEMA = 0x401
-    FIELD_ERROR = 0x402
-    CREATE_SCHEMA_SUCCESS = 0x201
-    CREATE_SCHEMA_ERROR = 0x501
-    PUBLISH_SCHEMA_SUCCESS = 0x202
-    PUBLISH_SCHEMA_ERROR = 0x502
-    NONE = None
+    CONNECTED = 0x0002
+    CONNECT_ERROR = 0x0500
+    DISCONNECTED = 0x0004
+    DISCONNECT_ERROR = 0x0005
+    CLIENT_AUTH_ERROR = 0x0006
+    QUERY_DATA = 0x0007
+    QUERY_COMPLETE = 0x0608
+    QUERY_ERROR = 0x0009
+    PONG = 0x0010
+    PARSE_QUERY_ERROR = 0x0100
+    NO_ACCESS = 0x0011
+    TOKEN_EXPIRED = 0x0400
+    INVALID_SCHEMA = 0x0401
+    FIELD_ERROR = 0x0402
+    INVALID_REQUEST_TYPE_ERROR = 0x0423
+    CREATE_SCHEMA_SUCCESS = 0x0201
+    CREATE_SCHEMA_ERROR = 0x0501
+    PUBLISH_SCHEMA_SUCCESS = 0x0202
+    PUBLISH_SCHEMA_ERROR = 0x0502
+    NONE = 0x000
 
     def get_name(self):
         """

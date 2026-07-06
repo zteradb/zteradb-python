@@ -25,7 +25,7 @@ from hashlib import sha256
 from zteradb.lib import zteradb_request_types
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 class ZTeraDBClientAuth:
@@ -44,9 +44,9 @@ class ZTeraDBClientAuth:
         response_data_type (ResponseDataTypes): Response data type
     """
 
-    __slots__ = ("_access_key", "_secret_key", "_client_key", "_nonce", "_timestamp", "_signature", "_request_type", "_response_data_type")
+    __slots__ = ("_access_key", "_secret_key", "_client_key", "_nonce", "_timestamp", "_signature", "_env", "_request_type", "_response_data_type")
 
-    def __init__(self, access_key: str, secret_key: str, client_key: str, nonce: str = "", signature: str = "",
+    def __init__(self, access_key: str, secret_key: str, client_key: str, nonce: str = "", signature: str = "", env: str = "",
                  timestamp: int=0, request_type: zteradb_request_types.RequestType = zteradb_request_types.RequestType.NONE,
                  response_data_type="json"):
         """
@@ -59,6 +59,8 @@ class ZTeraDBClientAuth:
         _timestamp (str): Timestamp of the auth request
         :param signature: Optional request token (used in authentication)
         :param request_type: Type of request (default: NONE)
+        :param env: Database Environment (dev, staging, qa, prod)
+        :param response_data_type: Response data type (default: json)
         """
         self._access_key: str = access_key
         self._secret_key: str = secret_key
@@ -66,6 +68,7 @@ class ZTeraDBClientAuth:
         self._nonce: str = nonce
         self._timestamp = timestamp
         self._signature: str = signature
+        self._env: str = env
         self._request_type: zteradb_request_types.RequestType = request_type
         self._response_data_type = response_data_type
 
@@ -141,6 +144,15 @@ class ZTeraDBClientAuth:
         :return: str: The generated request token.
         """
         return self._signature
+
+    @property
+    def env(self):
+        """
+        Returns the database environment (e.g., prod).
+
+        :return: env: The type of database environment.
+        """
+        return self._env
 
     @property
     def request_type(self):
@@ -282,7 +294,7 @@ class ZTeraDBClientAuth:
         This dictionary is typically used to authenticate the client with the server.
 
         Example:
-            >>> auth = ZTeraDBClientAuth(access_key="accessKey", secret_key="secretKey", client_key="clientKey")
+            >>> auth = ZTeraDBClientAuth(access_key="accessKey", secret_key="secretKey", client_key="clientKey", env="prod")
             >>> auth_request = auth.generate_auth_request()
             >>> print(auth_request)
             {
@@ -290,7 +302,9 @@ class ZTeraDBClientAuth:
                 'client_key': 'clientKey',
                 'nonce': 'f8d35d5a83a02cd125ab32546e85d7e9',
                 'signature': 'b8d8d4e3fd5a2adf067d1e0b70d73f5d8ebf4c3cd7fd9be05c2f11698b4577f1',
-                'request_type': 1
+                'request_type': 1,
+                'env': 'prd',
+                'response_data_type': 'json'
             }
 
         :return: dict: A dictionary containing authentication request data.
@@ -310,7 +324,7 @@ class ZTeraDBClientAuth:
         # Return the dictionary with authentication details
         return dict(client_key=self.client_key, nonce=self.nonce, timestamp=self.timestamp,
                     signature=self.signature, request_type=self.request_type.value,
-                    response_data_type=self._response_data_type)
+                    env=self.env, response_data_type=self._response_data_type)
 
 
 class ZTeraDBServerAuth:

@@ -32,7 +32,7 @@ from zteradb.exceptions.zteradb_exception import QueryComplete, NoResponseDataEr
 from zteradb.helper.zteradb_common import ZTeraDBResponseData
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
@@ -209,8 +209,11 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             response_data = {"token": "xyz"}
             is_valid = client.is_valid_server_auth_response(response_data)
         """
-        assert isinstance(client_auth, dict), "Client auth must be a dictionary."
+        if not isinstance(client_auth, dict):
+            raise TypeError("Client auth must be a dictionary.")
+
         client_auth["secret_key"] = self.secret_key
+        client_auth["access_key"] = self.access_key
         client_auth = ZTeraDBClientAuth(**client_auth)
         return client_auth.is_valid_signature
 
@@ -265,6 +268,8 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             host=self._host, port=self._port, ssl=ssl_context
         )
 
+        self._is_connected = True
+
         if ssl_context:
             # Retrieve SSL connection details for logging
             ssl_object = self._writer.get_extra_info("ssl_object")
@@ -316,15 +321,15 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
 
             # Creating an authentication request with provided keys
             auth_manager = ZTeraDBClientAuth(
-                access_key=self.access_key, secret_key=self.secret_key, client_key=self.client_key
+                access_key=self.access_key, secret_key=self.secret_key, client_key=self.client_key, env=self.zteradb_conf.env,
             )
 
             # Sending the authentication request to the server
             await self.send(json.dumps(auth_manager.generate_auth_request()))
 
             # Awaiting the response from the server
-            response_data = await asyncio.wait_for(self.read(), timeout=self.connect_timeout) if self.connect_timeout else await self.read()
-            await self.read()
+            response_data = await asyncio.wait_for(self.read(), timeout=self.connect_timeout) if self.connect_timeout is not None else await self.read()
+            _ = await self.read()
 
             # Checking the response data.
             if response_data:
@@ -352,12 +357,9 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
                 # Raise exception if authentication fails
                 raise AuthenticationFailed(f"Authentication failed: {response.data}")
             else:
-                # Log the error
-                log.error(f"No response received from ZTeraDB server.", exc_info=True)
-
                 # Raise exception if no response data received
                 raise NoResponseDataError("No response received from ZTeraDB server.")
-        
+
         except ConnectionResetError:
             log.error("Connection reset by peer", exc_info=True)
             raise ZTeraBaseError("Connection reset by peer")
@@ -366,14 +368,14 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             log.error("Connection refused - server not accepting connections", exc_info=True)
             raise ZTeraBaseError("Connection refused - server not accepting connections")
 
-        except OSError as e:
-            log.error(f"Connection error: {e}", exc_info=True)
-            raise ZTeraBaseError(f"Connection error: {e}")
-
         except asyncio.TimeoutError:
             log.error("connection timeout", exc_info=True)
             # Raise exception if request timeout occurred
             raise ZTeraBaseError("Connection timeout. Please check the server's reachability.")
+
+        except OSError as e:
+            log.error(f"Connection error: {e}", exc_info=True)
+            raise ZTeraBaseError(f"Connection error: {e}")
 
         except AuthenticationFailed:
             raise
@@ -507,17 +509,6 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
             await connection_manager.release_connection(self)
             raise ValueError(f"{query} is not an instance of ZTeraDBQuery")
 
-        # Check if the client is connected to the TeraDB server.
-        if not self.is_connected:
-            # If not connected, attempt to establish the connection.
-            await self.connect()
-
-        # Check if the client is both connected and authenticated with the server.
-        if not self.is_connected or not self.server_auth:
-            # Release the connection to connection manager
-            await connection_manager.release_connection(self)
-            raise ZTeraBaseError("Not connected to the server or missing server authentication.")
-
         # Prepare the request data for the query, which includes:
         #   - The query string generated from the ZTeraDBQuery object.
         #   - The request type set as QUERY.
@@ -545,5 +536,18 @@ class ZTeraDBClientProtocol(ZTeraDBTCPProtocol):
         except (NoResponseDataError, QueryComplete):
             pass
 
-        # Release the connection to connection manager
-        await connection_manager.release_connection(self)
+        except GeneratorExit:
+            cancel_request = {
+                "query": "cancel",
+                "request_type": zteradb_request_types.RequestType.CANCEL.value
+            }
+
+            await self.send(json.dumps(cancel_request))
+            await self.discard_all_incoming_data()
+
+        except Exception as e:
+            log.error(e, exc_info=True)
+
+        finally:
+            # Release the connection to connection manager
+            await connection_manager.release_connection(self)

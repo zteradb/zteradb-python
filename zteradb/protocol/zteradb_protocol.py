@@ -23,7 +23,7 @@ import asyncio
 from zteradb.lib.zteradb_data_manager import DataManager
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 class ZTeraDBTCPProtocol(asyncio.Protocol):
@@ -149,25 +149,18 @@ class ZTeraDBTCPProtocol(asyncio.Protocol):
         """
         buffer = bytearray()
         while len(buffer) < data_size:
-            if self._is_connected:
-                try:
-                    received_data = await self.reader.readexactly(data_size)
+            try:
+                received_data = await self.reader.readexactly(data_size)
 
-                    if not received_data:
-                        break
-
-                    buffer.extend(received_data)
-
-                except asyncio.IncompleteReadError as e:
-                    # print(self.writer.transport.is_closing(), "hh")
-                    print(e)
+                if not received_data:
                     break
 
-                except Exception as e:
-                    log.error(e, exc_info=True)
-                    break
+                buffer.extend(received_data)
 
-        # print(f"{data_size=}, {len(buffer)=}, {self._is_connected=}")
+            except (asyncio.IncompleteReadError, Exception) as e:
+                log.error(e, exc_info=True)
+                break
+
         return buffer
 
     async def send(self, data: any):
@@ -179,10 +172,6 @@ class ZTeraDBTCPProtocol(asyncio.Protocol):
         :param data: The data to send, which will be encoded and packed.
         :return: None
         """
-        if not self._is_connected or not self.writer.transport:
-            await self.close()
-            raise Exception("Connection is cosed!!!")
-
         try:
             self.writer.write(DataManager(data.encode()).pack())
             await self.writer.drain()
@@ -208,7 +197,17 @@ class ZTeraDBTCPProtocol(asyncio.Protocol):
                     await self.writer.wait_closed()
 
         except (ConnectionResetError, BrokenPipeError) as e:
-            log.error(e, exc_info=True)
+            # Log it as a debug/info message rather than letting a raw
+            # traceback escape, since the socket is successfully closed anyway.
+            log.debug(f"Socket was reset by peer during wait_closed(): {e}")
 
         finally:
             self._is_connected = False
+
+    async def discard_all_incoming_data(self):
+        try:
+            # -1 tells asyncio to read until EOF (until the sender stops sending)
+            await self.reader.read(-1)
+
+        except Exception as e:
+            log.error(f"Error while draining: {e}", exc_info=True)

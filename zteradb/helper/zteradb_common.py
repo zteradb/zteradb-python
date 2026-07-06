@@ -1,11 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 @dataclass
 class ZTeraDBResponseData:
     error: bool
     response_code: int
-    client_auth: dict
     data: dict
+    client_auth: Optional[dict] = field(default_factory=dict)
 
     def __post_init__(self):
         if not isinstance(self.error, bool):
